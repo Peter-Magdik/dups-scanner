@@ -12,23 +12,30 @@ from database import Database
 
 class Controller:
     def __init__(self, config: Config) -> None: 
-        self.source_dir = config.source
-        self.target_dir = config.target
-        self.hashing_algorithm = config.hashing_algo
-        self.hashing_mode = config.hashing_mode
-        self.delete = config.delete
+        self.config = config
+        self._total_files_scanned = 0
+        self._unprocessable_files = 0
+    
+    def _unprocessable_file(self):
+        self._unprocessable_files += 1
+        if (self._unprocessable_files / self._total_files_scanned * 100 > self.config.failure_threshold):
+            logging.error("Maximum file processing failure treshold exceeded.")
+            sys.exit(constants.EXIT_FILE_ERROR)
 
-    def _hash_files(self, file_list, hasher_func, source_flag):
+
+    def _hash_files(self, file_list, hasher_func, source_flag) -> list[str]:
         results = []
         for path in file_list:
             hash_val = hasher_func(path)
             if not hash_val:
                 logging.warning("Cannot get hash of %s, skipping this file", path)
+                self._unprocessable_file()
                 continue
             try:
                 size = os.path.getsize(path)
             except OSError as e:
                 logging.warning("Cannot get size of %s: %s, skipping this file", path, e)
+                self._unprocessable_file()
                 continue
             results.append((path, hash_val, size, source_flag))
         return results
@@ -38,8 +45,9 @@ class Controller:
         logging.info("Starting duplicate scan")
         
         try:
-            source_files = FileScanner.scan(self.source_dir)
-            target_files = FileScanner.scan(self.target_dir)
+            source_files = FileScanner.scan(self.config.source)
+            target_files = FileScanner.scan(self.config.target)
+            self._total_files_scanned = len(source_files) + len(target_files)
             logging.info("Found %d files in source dir and %d files in target dir", len(source_files), len(target_files))
         except FileNotFoundError as e:
             logging.error("Directory error: %s", e)
@@ -48,8 +56,8 @@ class Controller:
             logging.error("Unexpected error: %s", e)
             sys.exit(constants.EXIT_UNEXPECTED)
 
-        hasher = FileHasher(self.hashing_algorithm)
-        hf = hasher.quick_hash if self.hashing_mode == "quick" else hasher.full_hash
+        hasher = FileHasher(self.config.hashing_algo)
+        hf = hasher.quick_hash if self.config.hashing_mode == "quick" else hasher.full_hash
 
         hashed_source_files = self._hash_files(source_files, hf, True)
         hashed_target_files = self._hash_files(target_files, hf, False)
@@ -77,7 +85,7 @@ class Controller:
 
         for source_path, target_path in duplicates:
             logging.info("Duplicate: %s <-> %s", source_path, target_path)
-            if self.delete or input(f"[INPUT]\tDelete second file? (y/N): ").lower() == "y":
+            if self.config.delete or input(f"[INPUT]\tDelete second file? (y/N): ").lower() == "y":
                 try:
                     os.remove(target_path)
                 except Exception as e:

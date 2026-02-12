@@ -1,6 +1,8 @@
 import argparse
 import logging
 from config import Config
+import constants
+import sys
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -45,6 +47,13 @@ def parse_args() -> argparse.Namespace:
         help="Suppress informational logs and show only errors."
     )
 
+    parser.add_argument(
+        "--failure-threshold", "-ft",
+        type=int,
+        default=0,
+        metavar="0-100",
+        help="Maximum allowed percentage of file processing failures before aborting (default: 0)."
+    )
 
     return parser.parse_args()
 
@@ -56,5 +65,11 @@ def configure_logging(quiet: bool) -> None:
 
 def cli_to_config() -> Config:
     args = parse_args()
+    
     configure_logging(args.quiet)
-    return Config(**vars(args))
+    
+    try:
+        return Config(**vars(args))
+    except ValueError as e:
+        logging.error("Unable to process configuration: %s", e)
+        sys.exit(constants.EXIT_CONFIG_ERROR)
