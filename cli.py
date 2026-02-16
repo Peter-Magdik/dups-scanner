@@ -49,7 +49,7 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--failure-threshold", "-ft",
-        type=int,
+        type=float,
         default=0,
         metavar="0-100",
         help="Maximum allowed percentage of file processing failures before aborting (default: 0)."
