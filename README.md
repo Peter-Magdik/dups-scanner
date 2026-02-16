@@ -23,14 +23,15 @@ python dupefinder.py --source <SOURCE_DIR> --target <TARGET_DIR> [options]
 ```
 
 ## Options
-| Argument      | Short | Description                                       | Default      |
-| ------------- | ----- | ------------------------------------------------- | ------------ |
-| `--source`    | `-s`  | Source directory path                             | **required** |
-| `--target`    | `-t`  | Target directory path                             | **required** |
-| `--algo`      | `-a`  | Hash algorithm: `md5`, `sha1`, `sha256`           | `md5`        |
-| `--hash_mode` | `-m`  | Hashing mode: `quick` (first MiB) or `full`       | `quick`      |
-| `--delete`    | `-d`  | Automatically delete duplicates (no confirmation) | disabled     |
-| `--quiet`     | `-q`  | Keeps console clean with only most essencial info | disabled     |
+| Argument              | Short | Description                                               | Default      |
+| --------------------- | ----- | --------------------------------------------------------- | ------------ |
+| `--source`            | `-s`  | Source directory path                                     | **required** |
+| `--target`            | `-t`  | Target directory path                                     | **required** |
+| `--hashing_algorithm` | `-a`  | Hash algorithm: `md5`, `sha1`, `sha256`                   | `md5`        |
+| `--hash_mode`         | `-m`  | Hashing mode: `quick` (first MiB) or `full`               | `quick`      |
+| `--delete`            | `-d`  | Automatically delete duplicates (no confirmation)         | disabled     |
+| `--quiet`             | `-q`  | Keeps console clean with only most essencial info         | disabled     |
+| `--failure-threshold` | `-ft` | Max failure in % while processing files before aborting   | 0            |
 
 ## Logging
 
@@ -42,16 +43,17 @@ You can modify logging.basicConfig if you want to log into a file.
 | `DEBUG`    | Skipped or ignored files (verbose info)                  |
 | `INFO`     | Normal program flow and found duplicates                 |
 | `WARNING`  | Recoverable file access errors (permission issues, etc.) |
-| `CRITICAL` | Fatal errors that terminate execution                    |
+| `ERROR` | Fatal errors that terminate execution                    |
 
 ## Exit Codes
 
-| Code | Meaning                                     |
-| ---- | ------------------------------------------- |
-| `0`  | Successful execution                        |
-| `1`  | Unexpected runtime error                    |
-| `2`  | Source or target directory not found        |
-| `3`  | Database operation failed (insert or query) |
+| Code | Meaning                                                |
+| ---- | -------------------------------------------            |
+| `0`  | Successful execution                                   |
+| `1`  | Unexpected runtime error                               |
+| `2`  | Source or target directory not found                   |
+| `3`  | Database operation failed (insert or query)            |
+| `4`  | Configuration failed (failure-threshold out of range)  |
 
 ## Example
 

@@ -22,7 +22,7 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--hashing_algo", "-a",
+        "--hashing_algorithm", "-a",
         choices=["md5", "sha1", "sha256"],
         default="md5",
         help="Hashing algorithm used to compute file digests (default: md5)."
