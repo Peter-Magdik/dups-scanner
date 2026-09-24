@@ -1,11 +1,13 @@
 import cli
+from config import Config
 from controller import Controller
 
-def main():
-    config = cli.cli_to_config()
+
+def main() -> None:
+    config: Config = cli.cli_to_config()
 
 
-    app = Controller(config)
+    app: Controller = Controller(config)
     app.run()
 
 if __name__ == "__main__":
