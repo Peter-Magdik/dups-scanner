@@ -19,7 +19,7 @@ Duplicates are detected by comparing file size and hash (MD5, SHA1, or SHA256).
 ## Usage
 
 ```bash
-python dupefinder.py --source <SOURCE_DIR> --target <TARGET_DIR> [options]
+python main.py --source <SOURCE_DIR> --target <TARGET_DIR> [options]
 ```
 
 ## Options
@@ -59,7 +59,7 @@ You can modify logging.basicConfig if you want to log into a file.
 
 ### Input
 ```bash
-python dupefinder.py -s ./photos/source -t ./photos/backup --algo sha1 --hash_mode full
+python main.py -s ./photos/source -t ./photos/backup --algo sha1 --hash_mode full
 ```
 
 ### Output
