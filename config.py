@@ -11,6 +11,6 @@ class Config:
     quiet: bool
     failure_threshold: int
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not 0 <= self.failure_threshold <= 100:
             raise ValueError("failure_threshold must be between 0 and 100")
