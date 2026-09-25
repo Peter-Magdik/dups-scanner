@@ -66,8 +66,10 @@ python main.py -s ./photos/source -t ./photos/backup --algo sha1 --hash_mode ful
 ```bash
 2025-10-24 13:45:18 [INFO] Starting duplicate scan
 2025-10-24 13:45:18 [INFO] Found 122 files in source dir and 208 files in target dir
-2025-10-24 13:45:19 [INFO]  Duplicate: [source_path] <-> [target_path]
-[INPUT] Delete second file? (y/N): 
+2025-10-24 13:59:45 [INFO] Inserted 330 records into memory DB
+2025-10-24 13:59:56 [INFO] Duplicate: [source_path] <-> [target_path]
+2025-10-24 14:00:00 [INPUT] Delete second file? (y/N): y
+2025-10-24 13:45:28 [INFO] App ran successfully 
 ```
 
 ## License

@@ -14,6 +14,7 @@ def main() -> None:
 
     app: Controller = Controller(config)
     app.run()
+    logger.info(msg="App ran successfully")
 
 
 if __name__ == "__main__":
