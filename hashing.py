@@ -2,13 +2,14 @@ import hashlib
 import logging
 from _hashlib import HASH
 
+logger: logging.Logger = logging.getLogger(name=__name__)
 
 class FileHasher:
     def __init__(self, algorithm: str = "md5") -> None:
         if algorithm.lower() in ("md5", "sha1", "sha256"):
            self.algorithm: str = algorithm.lower()
         else:
-            logging.warning("Invalid hashing algorithm type %s, defaulting to md5", algorithm)
+            logger.warning(msg=f"Invalid hashing algorithm type {algorithm}, defaulting to md5")
             self.algorithm = "md5"
     
     def quick_hash(self, file_path: str, hashing_chunk_size: int = 1_048_576) -> str:
@@ -20,7 +21,7 @@ class FileHasher:
         hasher: HASH = hashlib.new(name=self.algorithm)
         with open(file=file_path, mode="rb") as f:
             hasher.update(f.read(hashing_chunk_size))
-        logging.warning("Permission denied for %s, excluding file from list", file_path)
+        logger.warning(msg=f"Permission denied for {file_path}, excluding file from list")
 
         return hasher.hexdigest()
     

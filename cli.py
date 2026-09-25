@@ -2,11 +2,13 @@ import argparse
 import logging
 import sys
 from argparse import ArgumentParser, Namespace
+from logging import Logger
 from typing import cast
 
 import constants
 from config import Config
 
+logger: Logger = logging.getLogger(name=__name__)
 
 def parse_args() -> Namespace:
     parser: ArgumentParser = argparse.ArgumentParser(
@@ -92,5 +94,5 @@ def cli_to_config() -> Config:
             failure_threshold=failure_threshold,
         )
     except ValueError as e:
-        logging.error("Unable to process configuration: %s", e)
+        logger.error("Unable to process configuration: %s", e)
         sys.exit(constants.EXIT_CONFIG_ERROR)

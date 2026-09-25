@@ -10,8 +10,8 @@ class FileScanner:
         scanned_files: list[str] = []
 
         for file_name in os.listdir(path):
-            full_path = os.path.join(path, file_name)
-            if os.path.isdir(full_path):
+            full_path: str = os.path.join(path, file_name)
+            if os.path.isdir(s=full_path):
                 if recursive:
                     scanned_files.extend(FileScanner.scan(path=full_path))
             else:
