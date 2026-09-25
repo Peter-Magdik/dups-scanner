@@ -1,92 +1,110 @@
-import os
-import sys
 import logging
-
+import os
 import sqlite3
+import sys
+from collections.abc import Callable
+from sqlite3 import Connection
 
 import constants
 from config import Config
-from scanner import FileScanner
-from hashing import FileHasher
 from database import Database
+from hashing import FileHasher
+from scanner import FileScanner
+
 
 class Controller:
-    def __init__(self, config: Config) -> None: 
-        self.config = config
-        self._total_files_scanned = 0
-        self._unprocessable_files = 0
-    
-    def _unprocessable_file(self):
+    def __init__(self, config: Config) -> None:
+        self.config: Config = config
+        self._total_files_scanned: int = 0
+        self._unprocessable_files: int = 0
+
+    def _unprocessable_file(self) -> None:
         self._unprocessable_files += 1
-        if (self._unprocessable_files / self._total_files_scanned * 100 > self.config.failure_threshold):
-            logging.error("Maximum file processing failure treshold exceeded.")
+        if (
+            self._unprocessable_files / self._total_files_scanned * 100
+            > self.config.failure_threshold
+        ):
+            logging.error(msg="Maximum file processing failure threshold exceeded.")  # noqa: LOG015
             sys.exit(constants.EXIT_FILE_ERROR)
 
+    def _hash_files(
+        self, file_list: list[str], 
+        hasher_func: Callable[..., str], 
+        source_flag: bool
+    ) -> list[tuple[str, str, int, bool]]:
 
-    def _hash_files(self, file_list, hasher_func, source_flag) -> list[str]:
-        results = []
+        results: list[tuple[str, str, int, bool]] = []
         for path in file_list:
-            hash_val = hasher_func(path)
+            hash_val: str = hasher_func(path)
             if not hash_val:
-                logging.warning("Cannot get hash of %s, skipping this file", path)
+                logging.warning(msg=f"Cannot get hash of {path}, skipping this file")  # noqa: LOG015
                 self._unprocessable_file()
                 continue
             try:
-                size = os.path.getsize(path)
+                size: int = os.path.getsize(filename=path)
             except OSError as e:
-                logging.warning("Cannot get size of %s: %s, skipping this file", path, e)
+                logging.warning(  # noqa: LOG015
+                    msg=f"Cannot get size of {path}: {e}, skipping this file"
+                )
                 self._unprocessable_file()
                 continue
             results.append((path, hash_val, size, source_flag))
         return results
 
+    def run(self) -> None:
+        logging.info(msg="Starting scan")  # noqa: LOG015
 
-    def run(self):
-        logging.info("Starting duplicate scan")
-        
         try:
-            source_files = FileScanner.scan(self.config.source)
-            target_files = FileScanner.scan(self.config.target)
+            source_files: list[str] = FileScanner.scan(path=self.config.source)
+            target_files: list[str] = FileScanner.scan(path=self.config.target)
             self._total_files_scanned = len(source_files) + len(target_files)
-            logging.info("Found %d files in source dir and %d files in target dir", len(source_files), len(target_files))
+            logging.info(  # noqa: LOG015
+                msg=f"Found {len(source_files)} files in source dir and {len(target_files)} files in target dir",
+            )
         except FileNotFoundError as e:
-            logging.error("Directory error: %s", e)
+            logging.error(msg=f"Directory error: {e}")  # noqa: LOG015
             sys.exit(constants.EXIT_FILE_ERROR)
         except Exception as e:
-            logging.error("Unexpected error: %s", e)
+            logging.error(msg=f"Unexpected error: {e}")  # noqa: LOG015
             sys.exit(constants.EXIT_UNEXPECTED)
 
-        hasher = FileHasher(self.config.hashing_algo)
-        hf = hasher.quick_hash if self.config.hashing_mode == "quick" else hasher.full_hash
+        hasher: FileHasher = FileHasher(algorithm=self.config.hashing_algorithm)
+        hf: Callable[..., str] = (
+            hasher.quick_hash
+            if self.config.hashing_mode == "quick"
+            else hasher.full_hash
+        )
 
-        hashed_source_files = self._hash_files(source_files, hf, True)
-        hashed_target_files = self._hash_files(target_files, hf, False)
+        hashed_source_files: list[tuple[str, str, int, bool]] = self._hash_files(file_list=source_files, hasher_func=hf, source_flag=True)
+        hashed_target_files: list[tuple[str, str, int, bool]] = self._hash_files(file_list=target_files, hasher_func=hf, source_flag=False)
 
+        connection: Connection = sqlite3.connect(":memory:")
+        db: Database = Database(connection)
 
-        connection = sqlite3.connect(":memory:")
-        db = Database(connection)
-        
         try:
-            db.insert(hashed_source_files)
-            db.insert(hashed_target_files)
+            db.insert(files=hashed_source_files)
+            db.insert(files=hashed_target_files)
 
-            files_count = db.count()
+            files_count: int = db.count()
 
-            logging.info("Inserted %d records into memory DB", files_count)
+            logging.info(msg=f"Inserted {files_count} records into memory DB")  # noqa: LOG015
         except Exception as e:
-            logging.critical("Insertion into DB was unsuccessful: %s", e)
+            logging.critical(msg=f"Insertion into DB was unsuccessful: {e}")  # noqa: LOG015
             sys.exit(constants.EXIT_DB_ERROR)
 
         try:
-            duplicates = db.find_dupes()
+            duplicates: list[tuple[str, str]] = db.find_dupes()
         except Exception as e:
-            logging.critical("Exececution of DB query was unsuccessful: %s", e)
+            logging.critical(msg=f"Execution of DB query was unsuccessful: {e}")  # noqa: LOG015
             sys.exit(constants.EXIT_DB_ERROR)
 
         for source_path, target_path in duplicates:
-            logging.info("Duplicate: %s <-> %s", source_path, target_path)
-            if self.config.delete or input(f"[INPUT]\tDelete second file? (y/N): ").lower() == "y":
+            logging.info(msg=f"Duplicate: {source_path} <-> {target_path}")  # noqa: LOG015
+            if (
+                self.config.delete
+                or input("[INPUT]\tDelete second file? (y/N): ").lower() == "y"
+            ):
                 try:
-                    os.remove(target_path)
+                    os.remove(path=target_path)
                 except Exception as e:
-                    logging.error("Failed to delete %s: %s", target_path, e)
+                    logging.error(msg=f"Failed to delete {target_path}: {e}")  # noqa: LOG015
