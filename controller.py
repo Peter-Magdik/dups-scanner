@@ -13,6 +13,7 @@ from scanner import FileScanner
 
 logger: logging.Logger = logging.getLogger(name=__name__)
 
+
 class Controller:
     def __init__(self, config: Config) -> None:
         self.config: Config = config
@@ -29,24 +30,20 @@ class Controller:
             sys.exit(constants.EXIT_FILE_ERROR)
 
     def _hash_files(
-        self, file_list: list[str], 
-        hasher_func: Callable[..., str], 
-        source_flag: bool
+        self, file_list: list[str], hasher_func: Callable[..., str], source_flag: bool
     ) -> list[tuple[str, str, int, bool]]:
 
         results: list[tuple[str, str, int, bool]] = []
         for path in file_list:
             hash_val: str = hasher_func(path)
             if not hash_val:
-                logger.warning(msg=f"Cannot get hash of {path}, skipping this file")
+                logger.warning("Cannot get hash of %s, skipping this file", path)
                 self._unprocessable_file()
                 continue
             try:
                 size: int = os.path.getsize(filename=path)
             except OSError as e:
-                logger.warning(
-                    msg=f"Cannot get size of {path}: {e}, skipping this file"
-                )
+                logger.warning("Cannot get size of %s: %s, skipping this file", path, e)
                 self._unprocessable_file()
                 continue
             results.append((path, hash_val, size, source_flag))
@@ -60,13 +57,15 @@ class Controller:
             target_files: list[str] = FileScanner.scan(path=self.config.target)
             self._total_files_scanned = len(source_files) + len(target_files)
             logger.info(
-                msg=f"Found {len(source_files)} files in source dir and {len(target_files)} files in target dir",
+                "Found %d files in source dir and %d files in target dir",
+                len(source_files),
+                len(target_files),
             )
         except FileNotFoundError as e:
-            logger.error(msg=f"Directory error: {e}")
+            logger.error("Directory error: %s", e)
             sys.exit(constants.EXIT_FILE_ERROR)
-        except Exception as e:
-            logger.error(msg=f"Unexpected error: {e}")
+        except (PermissionError, OSError) as e:
+            logger.error("OS-level error: %s", e)
             sys.exit(constants.EXIT_UNEXPECTED)
 
         hasher: FileHasher = FileHasher(algorithm=self.config.hashing_algorithm)
@@ -76,8 +75,12 @@ class Controller:
             else hasher.full_hash
         )
 
-        hashed_source_files: list[tuple[str, str, int, bool]] = self._hash_files(file_list=source_files, hasher_func=hf, source_flag=True)
-        hashed_target_files: list[tuple[str, str, int, bool]] = self._hash_files(file_list=target_files, hasher_func=hf, source_flag=False)
+        hashed_source_files: list[tuple[str, str, int, bool]] = self._hash_files(
+            file_list=source_files, hasher_func=hf, source_flag=True
+        )
+        hashed_target_files: list[tuple[str, str, int, bool]] = self._hash_files(
+            file_list=target_files, hasher_func=hf, source_flag=False
+        )
 
         connection: Connection = sqlite3.connect(":memory:")
         db: Database = Database(connection)
@@ -88,15 +91,15 @@ class Controller:
 
             files_count: int = db.count()
 
-            logger.info(msg=f"Inserted {files_count} records into memory DB")
-        except Exception as e:
-            logger.critical(msg=f"Insertion into DB was unsuccessful: {e}")
+            logger.info("Inserted %d records into memory DB", files_count)
+        except sqlite3.Error:
+            logger.critical(msg="Insertion into DB was unsuccessful")
             sys.exit(constants.EXIT_DB_ERROR)
 
         try:
             duplicates: list[tuple[str, str]] = db.find_dupes()
-        except Exception as e:
-            logger.critical(msg=f"Execution of DB query was unsuccessful: {e}")
+        except sqlite3.Error:
+            logger.critical(msg="Execution of DB query was unsuccessful")
             sys.exit(constants.EXIT_DB_ERROR)
 
         for source_path, target_path in duplicates:
@@ -107,5 +110,5 @@ class Controller:
             ):
                 try:
                     os.remove(path=target_path)
-                except Exception as e:
+                except (PermissionError, OSError) as e:
                     logger.error(msg=f"Failed to delete {target_path}: {e}")
