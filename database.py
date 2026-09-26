@@ -3,7 +3,7 @@ from typing import cast
 
 
 class Database:
-    def __init__(self, connection: sqlite3.Connection):
+    def __init__(self, connection: sqlite3.Connection) -> None:
         self.con: sqlite3.Connection = connection
         self.cur: sqlite3.Cursor = connection.cursor()
         _ = self.cur.execute("""
@@ -15,7 +15,7 @@ class Database:
 
         self.con.commit()
 
-    def insert(self, files: list[tuple[str, str, int, bool]]) -> None:
+    def insert(self, files: list[tuple[str, int, bool]]) -> None:
         _ = self.cur.executemany(
             "INSERT OR IGNORE INTO files (file_path, file_size, source) VALUES (?, ?, ?)",
             files

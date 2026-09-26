@@ -29,26 +29,6 @@ class Controller:
             logger.error(msg="Maximum file processing failure threshold exceeded.")
             sys.exit(constants.EXIT_FILE_ERROR)
 
-    def _hash_files(
-        self, file_list: list[str], hasher_func: Callable[..., str], source_flag: bool
-    ) -> list[tuple[str, str, int, bool]]:
-
-        results: list[tuple[str, str, int, bool]] = []
-        for path in file_list:
-            hash_val: str = hasher_func(path)
-            if not hash_val:
-                logger.warning("Cannot get hash of %s, skipping this file", path)
-                self._unprocessable_file()
-                continue
-            try:
-                size: int = os.path.getsize(filename=path)
-            except OSError as e:
-                logger.warning("Cannot get size of %s: %s, skipping this file", path, e)
-                self._unprocessable_file()
-                continue
-            results.append((path, hash_val, size, source_flag))
-        return results
-
     def run(self) -> None:
         logger.info(msg="Starting scan")
 
@@ -69,18 +49,8 @@ class Controller:
             sys.exit(constants.EXIT_UNEXPECTED)
 
         hasher: FileHasher = FileHasher(algorithm=self.config.hashing_algorithm)
-        hf: Callable[..., str] = (
-            hasher.quick_hash
-            if self.config.hashing_mode == "quick"
-            else hasher.full_hash
-        )
 
-        hashed_source_files: list[tuple[str, str, int, bool]] = self._hash_files(
-            file_list=source_files, hasher_func=hf, source_flag=True
-        )
-        hashed_target_files: list[tuple[str, str, int, bool]] = self._hash_files(
-            file_list=target_files, hasher_func=hf, source_flag=False
-        )
+        
 
         connection: Connection = sqlite3.connect(":memory:")
         db: Database = Database(connection)
