@@ -1,4 +1,5 @@
 import sqlite3
+from collections.abc import Sequence
 from typing import cast
 
 
@@ -15,7 +16,7 @@ class Database:
 
         self.con.commit()
 
-    def insert(self, files: list[tuple[str, int, bool]]) -> None:
+    def insert(self, files: Sequence[tuple[str, int, bool]]) -> None:
         _ = self.cur.executemany(
             "INSERT OR IGNORE INTO files (file_path, file_size, source) VALUES (?, ?, ?)",
             files
@@ -28,8 +29,7 @@ class Database:
                 s.file_path AS source_path,
                 t.file_path AS target_path
             FROM files s
-            JOIN files t
-            s.file_size = t.file_size
+            JOIN files t ON s.file_size = t.file_size
             WHERE s.source = 1
             AND t.source = 0;
 
