@@ -2,8 +2,8 @@ import logging
 import os
 import sqlite3
 import sys
-from collections.abc import Callable
 from sqlite3 import Connection
+from typing import Literal
 
 import constants
 from config import Config
@@ -48,16 +48,20 @@ class Controller:
             logger.error("OS-level error: %s", e)
             sys.exit(constants.EXIT_UNEXPECTED)
 
-        hasher: FileHasher = FileHasher(algorithm=self.config.hashing_algorithm)
+        insert_source_files: tuple[tuple[str, int, Literal[True]], ...] = (
+            tuple((path, os.path.getsize(path), True) for path in source_files)
+        )
 
-        
+        insert_target_files: tuple[tuple[str, int, Literal[False]], ...] = (
+            tuple((path, os.path.getsize(path), False) for path in target_files)
+        )
 
         connection: Connection = sqlite3.connect(":memory:")
         db: Database = Database(connection)
 
         try:
-            db.insert(files=hashed_source_files)
-            db.insert(files=hashed_target_files)
+            db.insert(files=insert_source_files)
+            db.insert(files=insert_target_files)
 
             files_count: int = db.count()
 
@@ -71,6 +75,8 @@ class Controller:
         except sqlite3.Error:
             logger.critical(msg="Execution of DB query was unsuccessful")
             sys.exit(constants.EXIT_DB_ERROR)
+
+        hasher: FileHasher = FileHasher(algorithm=self.config.hashing_algorithm)
 
         for source_path, target_path in duplicates:
             logger.info(msg=f"Duplicate: {source_path} <-> {target_path}")
