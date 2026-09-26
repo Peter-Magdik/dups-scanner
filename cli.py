@@ -37,8 +37,8 @@ def parse_args() -> Namespace:
     _ = parser.add_argument(
         "--hashing_mode", "-m",
         choices=["full", "quick"],
-        default="full",
-        help="Hashing mode: 'full' hashes entire files; 'quick' hashes only the initial chunk for faster but less reliable comparison (default: full)."
+        default="quick",
+        help="Hashing mode: 'full' hashes entire files; 'quick' hashes only the initial chunk for faster but less reliable comparison (default: quick)."
     )
 
     _ = parser.add_argument(
