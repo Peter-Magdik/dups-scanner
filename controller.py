@@ -79,6 +79,15 @@ class Controller:
         hasher: FileHasher = FileHasher(algorithm=self.config.hashing_algorithm)
 
         for source_path, target_path in duplicates:
+            if hasher.quick_hash(file_path=source_path) != hasher.quick_hash(file_path=target_path):
+                continue
+
+            if (
+                self.config.hashing_mode == "full" 
+                and hasher.full_hash(file_path=source_path) != hasher.full_hash(file_path=target_path)
+            ):
+                continue
+
             logger.info(msg=f"Duplicate: {source_path} <-> {target_path}")
             if (
                 self.config.delete
