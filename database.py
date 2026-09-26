@@ -9,7 +9,6 @@ class Database:
         _ = self.cur.execute("""
             CREATE TABLE IF NOT EXISTS files (
                 file_path TEXT PRIMARY KEY,
-                hash TEXT, 
                 file_size INTEGER, 
                 source INTEGER CHECK(source IN (0,1)));
         """)
@@ -18,7 +17,7 @@ class Database:
 
     def insert(self, files: list[tuple[str, str, int, bool]]) -> None:
         _ = self.cur.executemany(
-            "INSERT OR IGNORE INTO files (file_path, hash, file_size, source) VALUES (?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO files (file_path, file_size, source) VALUES (?, ?, ?)",
             files
         )
         self.con.commit()
@@ -30,8 +29,7 @@ class Database:
                 t.file_path AS target_path
             FROM files s
             JOIN files t
-            ON s.hash = t.hash
-            AND s.file_size = t.file_size
+            s.file_size = t.file_size
             WHERE s.source = 1
             AND t.source = 0;
 
